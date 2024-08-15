@@ -3,7 +3,7 @@ import pandas as pd
 
 
 # %%
-def threshold(df, column_name="pc", threshold = 1.5, type="pos"):
+def threshold(df:pd.Dataframe, column_name: str ="pc", threshold: int = 1.5, extreme_type: str ="pos") -> pd.DataFrame:
     """
     Calculate the threshold for the anomaly data across multiple years.
     
@@ -34,10 +34,10 @@ def threshold(df, column_name="pc", threshold = 1.5, type="pos"):
     G = df.groupby("adjusted_dayofyear")
     # 1.5 standard deviation as the threshold, suppose the mean is already zero (anomaly data)
 
-    if type == "pos":
+    if extreme_type == "pos":
         # the standard deviation of the data is calculated from all possible columns
         threshold = 1.5 * G[column_name].std()
-    elif type == "neg":
+    elif extreme_type == "neg":
         threshold = -1.5 * G[column_name].std()
     threshold = threshold.reset_index()
     threshold.columns = ["dayofyear", "threshold"]
@@ -48,7 +48,7 @@ def threshold(df, column_name="pc", threshold = 1.5, type="pos"):
 # %%
 
 
-def construct_window(df, column_name="pc", window=7):
+def construct_window(df: pd.DataFrame, column_name: str ="pc", window: int =7) -> pd.DataFrame:
     """
     Create a dataframe, with window/2 - 1 days before and after the day as the window.
 
@@ -78,7 +78,7 @@ def construct_window(df, column_name="pc", window=7):
 
 #%%
 
-def subtract_threshold(df, threshold, column_name='pc'):
+def subtract_threshold(df: pd.DataFrame, threshold: pd.DataFrame, column_name: str ='pc') -> pd.DataFrame:
     """
     Subtract the threshold from the column_name for each day-of-year in df.
     
