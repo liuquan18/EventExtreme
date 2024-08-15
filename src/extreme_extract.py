@@ -38,7 +38,7 @@ def extract_pos_extremes(df, column="residual"):
         [
             "extreme_start_time",
             "extreme_end_time",
-            "event_duration",
+            "extreme_duration",
             "sum",
             "mean",
             "max",
@@ -83,7 +83,7 @@ def extract_neg_extremes(df, column="residual"):
         [
             "extreme_start_time",
             "extreme_end_time",
-            "event_duration",
+            "extreme_duration",
             "sum",
             "mean",
             "max",
@@ -116,7 +116,7 @@ def find_sign_times(extremes, signs):
         ]
         row["sign_start_time"] = sign_i["extreme_start_time"].values[0]
         row["sign_end_time"] = sign_i["extreme_end_time"].values[0]
-        row["sign_duration"] = sign_i["event_duration"].values[0]
+        row["sign_duration"] = sign_i["extreme_duration"].values[0]
         new_extremes.append(row)
     new_extremes = pd.DataFrame(new_extremes)
 
