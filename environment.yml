@@ -1,13 +1,16 @@
-name: python_example   # change the name here 
+name: event_extreme   # change the name here 
 channels:
     - conda-forge
     - defaults
 dependencies:           # include all the packages you need in the project
-    - python>=3.9
+    - python>=3.10
     - pytest
     - sphinx
     - pip
     - matplotlib
+    - pandas
+    - numpy
+    - scipy
     - pip:              # include the packages that can only be installed by pip
         - myst_parser
         - nbsphinx
