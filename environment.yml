@@ -1,7 +1,4 @@
 name: event_extreme   # change the name here 
-channels:
-    - conda-forge
-    - defaults
 dependencies:           # include all the packages you need in the project
     - python>=3.10
     - pytest
