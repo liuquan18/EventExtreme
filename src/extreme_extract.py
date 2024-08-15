@@ -21,8 +21,8 @@ def extract_pos_extremes(df, column="residual"):
 
     # Get the statistics of the group
     Events = G.agg(
-        event_start_time=pd.NamedAgg(column="time", aggfunc="min"),
-        event_end_time=pd.NamedAgg(column="time", aggfunc="max"),
+        extreme_start_time=pd.NamedAgg(column="time", aggfunc="min"),
+        extreme_end_time=pd.NamedAgg(column="time", aggfunc="max"),
         sum=pd.NamedAgg(column=column, aggfunc="sum"),
         mean=pd.NamedAgg(column=column, aggfunc="mean"),
         max=pd.NamedAgg(column=column, aggfunc="max"),
@@ -30,14 +30,14 @@ def extract_pos_extremes(df, column="residual"):
             column=column, aggfunc="min"
         ),  # add mean to make sure the data are all positive
     ).reset_index()
-    Events["event_duration"] = (
-        Events["event_end_time"] - Events["event_start_time"]
+    Events["extreme_duration"] = (
+        Events["extreme_end_time"] - Events["extreme_start_time"]
     ).dt.days + 1
 
     Events = Events[
         [
-            "event_start_time",
-            "event_end_time",
+            "extreme_start_time",
+            "extreme_end_time",
             "event_duration",
             "sum",
             "mean",
@@ -66,8 +66,8 @@ def extract_neg_extremes(df, column="residual"):
 
     # Get the statistics of the group
     Events = G.agg(
-        event_start_time=pd.NamedAgg(column="time", aggfunc="min"),
-        event_end_time=pd.NamedAgg(column="time", aggfunc="max"),
+        extreme_start_time=pd.NamedAgg(column="time", aggfunc="min"),
+        extreme_end_time=pd.NamedAgg(column="time", aggfunc="max"),
         sum=pd.NamedAgg(column=column, aggfunc="sum"),
         mean=pd.NamedAgg(column=column, aggfunc="mean"),
         max=pd.NamedAgg(column=column, aggfunc="max"),
@@ -75,14 +75,14 @@ def extract_neg_extremes(df, column="residual"):
             column=column, aggfunc="min"
         ),  # add mean to make sure the data are all positive
     ).reset_index()
-    Events["event_duration"] = (
-        Events["event_end_time"] - Events["event_start_time"]
+    Events["extreme_duration"] = (
+        Events["extreme_end_time"] - Events["extreme_start_time"]
     ).dt.days + 1
 
     Events = Events[
         [
-            "event_start_time",
-            "event_end_time",
+            "extreme_start_time",
+            "extreme_end_time",
             "event_duration",
             "sum",
             "mean",
@@ -111,20 +111,20 @@ def find_sign_times(extremes, signs):
     for i, row in extremes.iterrows():
         sign_i = signs[
             (signs["plev"] == row["plev"])
-            & (signs["event_start_time"] <= row["event_start_time"])
-            & (signs["event_end_time"] >= row["event_end_time"])
+            & (signs["extreme_start_time"] <= row["extreme_start_time"])
+            & (signs["extreme_end_time"] >= row["extreme_end_time"])
         ]
-        row["sign_start_time"] = sign_i["event_start_time"].values[0]
-        row["sign_end_time"] = sign_i["event_end_time"].values[0]
+        row["sign_start_time"] = sign_i["extreme_start_time"].values[0]
+        row["sign_end_time"] = sign_i["extreme_end_time"].values[0]
         row["sign_duration"] = sign_i["event_duration"].values[0]
         new_extremes.append(row)
     new_extremes = pd.DataFrame(new_extremes)
 
-    new_extremes.loc[:, "event_start_time"] = pd.to_datetime(
-        new_extremes["event_start_time"]
+    new_extremes.loc[:, "extreme_start_time"] = pd.to_datetime(
+        new_extremes["extreme_start_time"]
     )
-    new_extremes.loc[:, "event_end_time"] = pd.to_datetime(
-        new_extremes["event_end_time"]
+    new_extremes.loc[:, "extreme_end_time"] = pd.to_datetime(
+        new_extremes["extreme_end_time"]
     )
     new_extremes.loc[:, "sign_start_time"] = pd.to_datetime(
         new_extremes["sign_start_time"]
@@ -139,9 +139,9 @@ def find_sign_times(extremes, signs):
         new_extremes.columns
     ].apply(
         lambda x: x.assign(
-            start_time=x["event_start_time"].min(),
-            end_time=x["event_end_time"].max(),
-            duration=(x["event_end_time"].max() - x["event_start_time"].min()).days + 1,
+            start_time=x["extreme_start_time"].min(),
+            end_time=x["extreme_end_time"].max(),
+            duration=(x["extreme_end_time"].max() - x["extreme_start_time"].min()).days + 1,
         )
     )
 
