@@ -110,8 +110,7 @@ def find_sign_times(extremes, signs):
     new_extremes = []
     for i, row in extremes.iterrows():
         sign_i = signs[
-            (signs["plev"] == row["plev"])
-            & (signs["extreme_start_time"] <= row["extreme_start_time"])
+            (signs["extreme_start_time"] <= row["extreme_start_time"])
             & (signs["extreme_end_time"] >= row["extreme_end_time"])
         ]
         row["sign_start_time"] = sign_i["extreme_start_time"].values[0]
