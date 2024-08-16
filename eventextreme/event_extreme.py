@@ -6,8 +6,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 # %%
-import src.extreme_extract as ee
-import src.extreme_threshold as et
+import eventextreme.extreme_extract as ee
+import eventextreme.extreme_threshold as et
 
 # %%
 import importlib

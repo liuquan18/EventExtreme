@@ -4,9 +4,9 @@ import numpy as np
 
 # %%
 
-import src.event_extreme as evext
-import src.extreme_extract as ee
-import src.extreme_threshold as et
+import eventextreme.event_extreme as evext
+import eventextreme.extreme_extract as ee
+import eventextreme.extreme_threshold as et
 #%%
 import importlib
 importlib.reload(evext)
