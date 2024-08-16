@@ -138,8 +138,8 @@ def find_sign_times(extremes, signs):
         new_extremes.columns
     ].apply(
         lambda x: x.assign(
-            start_time=x["extreme_start_time"].min(),
-            end_time=x["extreme_end_time"].max(),
+            extreme_start_time=x["extreme_start_time"].min(),
+            extreme_end_time=x["extreme_end_time"].max(),
             extreme_duration=(x["extreme_end_time"].max() - x["extreme_start_time"].min()).days + 1,
         )
     )
