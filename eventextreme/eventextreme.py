@@ -108,6 +108,19 @@ class EventExtreme:
 
         logging.info("Negative extreme events are extracted.")
         return self.negative_events
+    
+    def set_positive_threshold(self, pos_thr_dayofyear):
+        """
+        Set the positive threshold by user.
+        """
+        self.pos_thr_dayofyear = pos_thr_dayofyear
+
+    def set_negative_threshold(self, neg_thr_dayofyear):
+        """
+        Set the negative threshold by user.
+        """
+        self.neg_thr_dayofyear = neg_thr_dayofyear
+        
 
     def examine_independent_dim(self):
         # if there are other dimensions apart from 'time' and 'column_name'
