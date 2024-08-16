@@ -88,6 +88,8 @@ class EventExtreme:
             self.positive_events = self.extract_extremes_single(extreme_type="pos")
         else:
             self.positive_events = self.extract_extremes_multi(extreme_type="pos")
+
+        logging.info("Positive extreme events are extracted.")
         return self.positive_events
 
     @property
@@ -99,6 +101,8 @@ class EventExtreme:
             self.negative_events = self.extract_extremes_single(extreme_type="neg")
         else:
             self.negative_events = self.extract_extremes_multi(extreme_type="neg")
+
+        logging.info("Negative extreme events are extracted.")
         return self.negative_events
 
     def examine_independent_dim(self):
@@ -205,7 +209,7 @@ class EventExtreme:
         if extreme_type == "pos":
 
             # extreme_strat_time and extreme_end_time are calculated after removing the threshold from original data
-            pos_thr_dayofyear = self.calculate_threshold(extreme_type="pos")
+            pos_thr_dayofyear = self.calculate_threshold_single(extreme_type="pos")
             data_residual = et.subtract_threshold(
                 self.data, threshold=pos_thr_dayofyear, column_name=self.column_name
             )
@@ -226,7 +230,7 @@ class EventExtreme:
         elif extreme_type == "neg":
 
             # extreme_strat_time and extreme_end_time are calculated after removing the threshold from original data
-            neg_thr_dayofyear = self.calculate_threshold(extreme_type="neg")
+            neg_thr_dayofyear = self.calculate_threshold_single(extreme_type="neg")
             data_residual = et.subtract_threshold(
                 self.data, threshold=neg_thr_dayofyear, column_name=self.column_name
             )
@@ -256,7 +260,7 @@ class EventExtreme:
 
         if extreme_type == "pos":
             # extreme_strat_time and extreme_end_time are calculated after removing the threshold from original data
-            thr_dayofyear = self.calculate_threshold(extreme_type="pos")
+            thr_dayofyear = self.calculate_threshold_multi(extreme_type="pos")
             data_residual = self.data.groupby(self.independent_dim)[
                 ["time", self.column_name]
             ].apply(
@@ -281,7 +285,7 @@ class EventExtreme:
 
         elif extreme_type == "neg":
             # extreme_strat_time and extreme_end_time are calculated after removing the threshold from original data
-            thr_dayofyear = self.calculate_threshold(extreme_type="neg")
+            thr_dayofyear = self.calculate_threshold_multi(extreme_type="neg")
             data_residual = self.data.groupby(self.independent_dim)[
                 ["time", self.column_name]
             ].apply(
