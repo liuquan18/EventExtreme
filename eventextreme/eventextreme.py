@@ -108,6 +108,19 @@ class EventExtreme:
 
         logging.info("Negative extreme events are extracted.")
         return self.negative_events
+    
+    def set_positive_threshold(self, pos_thr_dayofyear):
+        """
+        Set the positive threshold by user.
+        """
+        self.pos_thr_dayofyear = pos_thr_dayofyear
+
+    def set_negative_threshold(self, neg_thr_dayofyear):
+        """
+        Set the negative threshold by user.
+        """
+        self.neg_thr_dayofyear = neg_thr_dayofyear
+
 
     def examine_independent_dim(self):
         # if there are other dimensions apart from 'time' and 'column_name'
@@ -326,11 +339,14 @@ class EventExtreme:
             pos_extreme_events = data_residual.groupby(self.independent_dim)[
                 ["time", "residual"]
             ].apply(ee.extract_pos_extremes, column="residual")
+            pos_extreme_events = pos_extreme_events.droplevel(-1).reset_index()
 
             # extract positive 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
             pos_sign_events = self.data.groupby(self.independent_dim)[
                 ["time", self.column_name]
             ].apply(ee.extract_pos_extremes, column=self.column_name)
+
+            pos_sign_events = pos_sign_events.droplevel(-1).reset_index()
 
             # find the corresponding sign-time for pos_extreme event
             events = ee.find_sign_times(pos_extreme_events, pos_sign_events)
@@ -355,11 +371,13 @@ class EventExtreme:
             neg_extreme_events = data_residual.groupby(self.independent_dim)[
                 ["time", "residual"]
             ].apply(ee.extract_neg_extremes, column="residual")
+            neg_extreme_events = neg_extreme_events.droplevel(-1).reset_index()
 
             # extract negative 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
             neg_sign_events = self.data.groupby(self.independent_dim)[
                 ["time", self.column_name]
             ].apply(ee.extract_neg_extremes, column=self.column_name)
+            neg_sign_events = neg_sign_events.droplevel(-1).reset_index()
 
             # find the corresponding sign-time for neg_extreme event
             events = ee.find_sign_times(neg_extreme_events, neg_sign_events)
