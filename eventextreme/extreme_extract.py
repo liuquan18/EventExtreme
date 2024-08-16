@@ -3,7 +3,6 @@ import pandas as pd
 from scipy import ndimage
 
 
-
 # %%
 def extract_pos_extremes(df, column="residual"):
     """
@@ -94,7 +93,7 @@ def extract_neg_extremes(df, column="residual"):
 
 
 # %%
-def find_sign_times(extremes, signs):
+def find_sign_times(extremes, signs, independent_dim=None):
     """
     Find the sign_start_time and sign_end_time for each extreme event.
 
@@ -109,26 +108,35 @@ def find_sign_times(extremes, signs):
     # select rows of signs, where the sign event is within the extreme event
     new_extremes = []
     for i, row in extremes.iterrows():
-        sign_i = signs[
-            (signs["extreme_start_time"] <= row["extreme_start_time"])
-            & (signs["extreme_end_time"] >= row["extreme_end_time"])
-        ]
-        row["sign_start_time"] = sign_i["extreme_start_time"].values[0]
-        row["sign_end_time"] = sign_i["extreme_end_time"].values[0]
-        row["sign_duration"] = sign_i["extreme_duration"].values[0]
-        new_extremes.append(row)
+        if independent_dim is None:
+            sign_i = signs[
+                (signs["extreme_start_time"] <= row["extreme_start_time"])
+                & (signs["extreme_end_time"] >= row["extreme_end_time"])
+            ]
+        else:
+            sign_i = signs[
+                (signs["extreme_start_time"] <= row["extreme_start_time"])
+                & (signs["extreme_end_time"] >= row["extreme_end_time"])
+                & (signs[independent_dim] == row[independent_dim])
+            ]
+        if not sign_i.empty:
+
+            row["sign_start_time"] = sign_i["extreme_start_time"].values[0]
+            row["sign_end_time"] = sign_i["extreme_end_time"].values[0]
+            row["sign_duration"] = sign_i["extreme_duration"].values[0]
+            new_extremes.append(row)
+
     new_extremes = pd.DataFrame(new_extremes)
 
-    new_extremes.loc[:, "extreme_start_time"] = pd.to_datetime(
-        new_extremes["extreme_start_time"]
-    )
-    new_extremes.loc[:, "extreme_end_time"] = pd.to_datetime(
-        new_extremes["extreme_end_time"]
-    )
-    new_extremes.loc[:, "sign_start_time"] = pd.to_datetime(
-        new_extremes["sign_start_time"]
-    )
-    new_extremes.loc[:, "sign_end_time"] = pd.to_datetime(new_extremes["sign_end_time"])
+    # convert the columns to datetime
+    date_time_columns = [
+        "extreme_start_time",
+        "extreme_end_time",
+        "sign_start_time",
+        "sign_end_time",
+    ]
+    for col in date_time_columns:
+        new_extremes[col] = pd.to_datetime(new_extremes[col])
 
     # find duplicated rows on 'sign_start_time' and 'sign_end_time', delete first one, and replace the 'start_time' with
     # smallest 'start_time' and 'end_time' with largest 'end_time'
@@ -136,13 +144,21 @@ def find_sign_times(extremes, signs):
     # group by 'sign_start_time' and 'sign_end_time'
     new_extremes = new_extremes.groupby(["sign_start_time", "sign_end_time"])[
         new_extremes.columns
-    ].apply(
-        lambda x: x.assign(
-            extreme_start_time=x["extreme_start_time"].min(),
-            extreme_end_time=x["extreme_end_time"].max(),
-            extreme_duration=(x["extreme_end_time"].max() - x["extreme_start_time"].min()).days + 1,
-        )
+    ].agg(
+        {
+            "extreme_start_time": "min",
+            "extreme_end_time": "max",
+            **{
+                col: "first"
+                for col in extremes.columns
+                if col not in ["extreme_start_time", "extreme_end_time"]
+            },
+        }
     )
+
+    new_extremes["sign_duration"] = (
+        new_extremes["sign_end_time"] - new_extremes["sign_start_time"]
+    ).dt.days + 1
 
     new_extremes = new_extremes.reset_index(drop=True)
     new_extremes = new_extremes.drop_duplicates(
