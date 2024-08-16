@@ -349,7 +349,7 @@ class EventExtreme:
             pos_sign_events = pos_sign_events.droplevel(-1).reset_index()
 
             # find the corresponding sign-time for pos_extreme event
-            events = ee.find_sign_times(pos_extreme_events, pos_sign_events)
+            events = ee.find_sign_times(pos_extreme_events, pos_sign_events, independent_dim=self.independent_dim)
 
         elif extreme_type == "neg":
             if self.neg_thr_dayofyear is None:
@@ -380,6 +380,6 @@ class EventExtreme:
             neg_sign_events = neg_sign_events.droplevel(-1).reset_index()
 
             # find the corresponding sign-time for neg_extreme event
-            events = ee.find_sign_times(neg_extreme_events, neg_sign_events)
+            events = ee.find_sign_times(neg_extreme_events, neg_sign_events, independent_dim=self.independent_dim)
 
         return events
