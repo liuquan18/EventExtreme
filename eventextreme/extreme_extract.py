@@ -153,12 +153,11 @@ def find_sign_times(extremes, signs, independent_dim=None):
             + 1,
         )
     )
-
+    new_extremes = new_extremes.reset_index(drop=True)
     new_extremes["sign_duration"] = (
         new_extremes["sign_end_time"] - new_extremes["sign_start_time"]
     ).dt.days + 1
 
-    new_extremes = new_extremes.reset_index(drop=True)
     new_extremes = new_extremes.drop_duplicates(
         subset=["sign_start_time", "sign_end_time"], ignore_index=True
     )

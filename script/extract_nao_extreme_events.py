@@ -54,5 +54,7 @@ negative_events = extremes.extract_negative_extremes
 # test with pre-defined threshold
 extremes = evext.EventExtreme(data, independent_dim='plev')
 extremes.pos_thr_dayofyear = pos_threshold
+
+#%%
 positive_events = extremes.extract_positive_extremes
 # %%
