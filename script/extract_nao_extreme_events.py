@@ -4,7 +4,7 @@ import numpy as np
 
 # %%
 
-import eventextreme.event_extreme as evext
+import eventextreme.eventextreme as evext
 import eventextreme.extreme_extract as ee
 import eventextreme.extreme_threshold as et
 #%%
