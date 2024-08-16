@@ -47,35 +47,26 @@ class EventExtreme:
         )
         self.column_name = column_name
 
-        self.pos_abs_thr = None  # calculate the absolute value of threshold at each day-of-year with 7 day-window
-        self.neg_abs_thr = None
+        self.pos_thr_dayofyear = None  # calculate the absolute value of threshold at each day-of-year with 7 day-window
+        self.neg_thr_dayofyear = None
 
         self.positive_events = None
         self.negative_events = None
 
         self.independent_dim = independent_dim
 
-        # Check if the data is a pandas dataframe with time in column 0
-        if not isinstance(data, pd.DataFrame):
+        # Check if the data is a pandas dataframe with time in one of the columns
+        if not isinstance(self.data, pd.DataFrame):
             raise ValueError("Data must be a pandas dataframe object.")
-        if "time" not in data.columns:
+        if "time" not in self.data.columns:
             raise ValueError("Data must have a 'time' column.")
-        if column_name not in data.columns:
-            raise ValueError(f"Data must have a '{column_name}' column.")
+        if self.column_name not in self.data.columns:
+            raise ValueError(f"Data must have a '{self.column_name}' column.")
 
-        # if there are other dimensions apart from 'time' and 'column_name'
-        if (len(data.columns) == 3) and (independent_dim is None):
-            # update the independent_dim with column that is not 'time' and 'column_name'
-            self.independent_dim = [
-                col for col in data.columns if col not in ["time", column_name]
-            ][0]
-            logging.info(f"Independent dimension is set to {self.independent_dim}")
-
-        if len(data.columns) > 3:
-            raise ValueError("There are more than 3 columns in the data")
+        # check the independent_dim
+        self.examine_independent_dim()
 
         logging.info("remove leap year 29th February")
-
         # Convert 'time' column to datetime
         self.data.time = pd.to_datetime(self.data.time)
 
@@ -90,101 +81,227 @@ class EventExtreme:
 
     @property
     def extract_positive_extremes(self):
+        """
+        propoerty function to extract positive extreme events.
+        """
         if self.independent_dim is None:
-
-            # step1: calculate the positive threshold for each day-of-year with a 7-day window
-            if self.pos_abs_thr is None:
-                logging.info("positive threshold not provided. Calculating threshold.")
-
-            data_window = et.construct_window(
-                self.data, column_name=self.column_name, window=7
-            )
-            self.pos_abs_thr = et.threshold(
-                data_window, column_name=self.column_name, extreme_type="pos"
-            )
-
-            # step2: subtract the threshold from the data, and construct a new column called 'residual'
-            pos_data = et.subtract_threshold(
-                self.data, threshold=self.pos_abs_thr, column_name=self.column_name
-            )
-
-            # step3: extract positive 'extreme' events based on 'residual' column. see source code for more details
-            pos_extreme = ee.extract_pos_extremes(pos_data, column="residual")
-
-            # step4: extract positive 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
-            pos_sign = ee.extract_pos_extremes(self.data, column=self.column_name)
-
-            # step 5: find the corresponding sign-time for pos_extreme event
-            self.positive_events = ee.find_sign_times(pos_extreme, pos_sign)
-
+            self.positive_events = self.extract_extremes_single(extreme_type="pos")
         else:
-            # use groupby to calculate the threshold for each independent dimension
-            logging.info(f"Using groupby('{self.independent_dim}') to calculate")
-            lind = len(self.independent_dim) # the index of level that should be dropped after groupby(self.independent_dim)
-            # step1: calculate the positive threshold for each day-of-year with a 7-day window
-            if self.pos_abs_thr is None:
-                logging.info("positive threshold not provided. Calculating threshold.")
-
-            data_window = self.data.groupby(self.independent_dim)[['time', self.column_name]].apply(
-                et.construct_window, column_name=self.column_name, window=7
-            )
-            data_window = data_window.droplevel(lind).reset_index() # the old index now the second level of the new index
-
-            self.pos_abs_thr = data_window.groupby(self.independent_dim)[['time', self.column_name]].apply(
-                et.threshold, column_name=self.column_name, extreme_type="pos"
-            )
-
-            self.pos_abs_thr = self.pos_abs_thr.droplevel(lind).reset_index() # the old index now the second level of the new index
-
-            # step2: subtract the threshold from the data, and construct a new column called 'residual'
-
-            pos_data = self.data.groupby(self.independent_dim)[['time',self.column_name]].apply(
-                et.subtract_threshold,
-                threshold=self.pos_abs_thr,
-                column_name=self.column_name,
-            )
-            pos_data = pos_data.droplevel(lind).reset_index() # the old index now the second level of the new index
-
-            # step3: extract positive 'extreme' events based on 'residual' column. see source code for more details
-            pos_extreme = pos_data.groupby(self.independent_dim)[['time', self.column_name]].apply(
-                ee.extract_pos_extremes, column="residual"
-            )
-
-
-            # step4: extract positive 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
-            pos_sign = self.data.groupby(self.independent_dim).apply(
-                ee.extract_pos_extremes, column=self.column_name
-            )
-
-            # step 5: find the corresponding sign-time for pos_extreme event
-            self.positive_events = pos_extreme.groupby(self.independent_dim).apply(
-                ee.find_sign_times, signs=pos_sign
-            )
+            self.positive_events = self.extract_extremes_multi(extreme_type="pos")
+        return self.positive_events
 
     @property
     def extract_negative_extremes(self):
+        """
+        propoerty function to extract negative extreme events.
+        """
+        if self.independent_dim is None:
+            self.negative_events = self.extract_extremes_single(extreme_type="neg")
+        else:
+            self.negative_events = self.extract_extremes_multi(extreme_type="neg")
+        return self.negative_events
 
-        # step1: calculate the negative threshold for each day-of-year with a 7-day window
-        if self.neg_abs_thr is None:
-            logging.info("negative threshold not provided. Calculating threshold.")
+    def examine_independent_dim(self):
+        # if there are other dimensions apart from 'time' and 'column_name'
+        if (len(self.data.columns) < 3) and (self.independent_dim is None):
+            logging.info(
+                "single time series data detected. No independent dimension is set."
+            )
+
+        elif (len(self.data.columns) >= 3) and (self.independent_dim is None):
+            # update the independent_dim with column that is not 'time' and 'column_name'
+            self.independent_dim = [
+                col
+                for col in self.data.columns
+                if col not in ["time", self.column_name]
+            ][0]
+            logging.info(f"Independent dimension is set to {self.independent_dim}")
+
+        else:
+            raise ValueError(
+                "independent dimension is wrongly set. Please check the data"
+            )
+
+    def calculate_threshold_single(self, extreme_type: int = "pos") -> pd.DataFrame:
+        """
+        Calculate the threshold for positive or negative extreme events.
+        The threshold is calculated for each day-of-year with a 7-day window.
+        This threshold can be replaced by a user-defined threshold (with data-of-year as one of the columns).
+
+        Parameters
+        ----------
+        extreme_type: str
+            The type of extreme events to calculate the threshold. Default is 'pos' for positive extreme events.
+            The other option is 'neg' for negative extreme events.
+
+        Returns
+        -------
+        thr_dayofyear: pandas.DataFrame
+            A pandas DataFrame with self.independent_dim (if appliable), 'time' and 'threshold' columns
+        """
 
         data_window = et.construct_window(
             self.data, column_name=self.column_name, window=7
         )
-        self.neg_abs_thr = et.threshold(
-            data_window, column_name=self.column_name, extreme_type="neg"
+
+        if extreme_type == "pos":
+            thr_dayofyear = et.threshold(
+                data_window, column_name=self.column_name, extreme_type="pos"
+            )
+        elif extreme_type == "neg":
+
+            thr_dayofyear = et.threshold(
+                data_window, column_name=self.column_name, extreme_type="neg"
+            )
+
+        return thr_dayofyear
+
+    def calculate_threshold_multi(
+        self, independent_dim, extreme_type: int = "pos"
+    ) -> pd.DataFrame:
+        """
+        calculate the threshold idividually for each value of independent_dim.
+        """
+        data_window = self.data.groupby(self.independent_dim)[
+            ["time", self.column_name]
+        ].apply(et.construct_window, column_name=self.column_name, window=7)
+        data_window = data_window.droplevel(-1).reset_index()
+
+        if extreme_type == "pos":
+            thr_dayofyear = data_window.groupby(self.independent_dim)[
+                ["time", self.column_name]
+            ].apply(et.threshold, column_name=self.column_name, extreme_type="pos")
+
+        elif extreme_type == "neg":
+            thr_dayofyear = data_window.groupby(self.independent_dim)[
+                ["time", self.column_name]
+            ].apply(et.threshold, column_name=self.column_name, extreme_type="neg")
+
+        return thr_dayofyear
+
+    def extract_extremes_single(self, extreme_type="pos"):
+        """
+        extract extreme events based on the calculated threshold.
+        The extreme events have 'extreme_start_time' and 'extreme_end_time' columns indicating the start and end time of the values exceeding the threshold.
+        'sign_start_time' and 'sign_end_time' columns are also included to show the start and end time that when the event strats to grow and end.
+
+
+            |                 :       *   *         :
+            |                 :   *             *   :
+        1.5 |.................*.....................*.............................
+            |              *  :                     :    *
+            |           *     :                     :         *
+          0 |_______*_________:_____________________:______________*______________
+                  *           :                     :                 *
+        sign_start_time   extrme_start_time    extreme_end_time      sign_end_time
+
+
+         Parameters
+        ----------
+        extreme_type: str
+            The type of extreme events to extract. Default is 'pos' for positive extreme events.
+            The other option is 'neg' for negative extreme events.
+        """
+        if extreme_type == "pos":
+
+            # extreme_strat_time and extreme_end_time are calculated after removing the threshold from original data
+            pos_thr_dayofyear = self.calculate_threshold(extreme_type="pos")
+            data_residual = et.subtract_threshold(
+                self.data, threshold=pos_thr_dayofyear, column_name=self.column_name
+            )
+
+            # extract positive 'extreme' events based on 'residual' column. see source code for more details
+            pos_extreme_events = ee.extract_pos_extremes(
+                data_residual, column="residual"
+            )
+
+            # extract positive 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
+            pos_sign_events = ee.extract_pos_extremes(
+                self.data, column=self.column_name
+            )
+
+            # find the corresponding sign-time for pos_extreme event
+            events = ee.find_sign_times(pos_extreme_events, pos_sign_events)
+
+        elif extreme_type == "neg":
+
+            # extreme_strat_time and extreme_end_time are calculated after removing the threshold from original data
+            neg_thr_dayofyear = self.calculate_threshold(extreme_type="neg")
+            data_residual = et.subtract_threshold(
+                self.data, threshold=neg_thr_dayofyear, column_name=self.column_name
+            )
+
+            # extract negative 'extreme' events based on 'residual' column. see source code for more details
+            neg_extreme_events = ee.extract_neg_extremes(
+                data_residual, column="residual"
+            )
+
+            # extract negative 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
+            neg_sign_events = ee.extract_neg_extremes(
+                self.data, column=self.column_name
+            )
+
+            # find the corresponding sign-time for neg_extreme event
+            events = ee.find_sign_times(neg_extreme_events, neg_sign_events)
+
+        return events
+
+    def extract_extremes_multi(self, independent_dim, extreme_type="pos"):
+        """
+        extract extreme events individually for each value of independent_dim.
+        """
+        logging.info(
+            f"Using groupby('{self.independent_dim}') to extract extreme events didependently for each value of '{self.independent_dim}'"
         )
 
-        # step2: subtract the threshold from the data, and construct a new column called 'residual'
-        neg_data = et.subtract_threshold(
-            self.data, threshold=self.neg_abs_thr, column_name=self.column_name
-        )
+        if extreme_type == "pos":
+            # extreme_strat_time and extreme_end_time are calculated after removing the threshold from original data
+            thr_dayofyear = self.calculate_threshold(extreme_type="pos")
+            data_residual = self.data.groupby(self.independent_dim)[
+                ["time", self.column_name]
+            ].apply(
+                et.subtract_threshold,
+                threshold=thr_dayofyear,
+                column_name=self.column_name,
+            )
+            data_residual = data_residual.droplevel(-1).reset_index()
 
-        # step3: extract negative 'extreme' events based on 'residual' column. see source code for more details
-        neg_extreme = ee.extract_neg_extremes(neg_data, column="residual")
+            # extract positive 'extreme' events based on 'residual' column. see source code for more details
+            pos_extreme_events = data_residual.groupby(self.independent_dim)[
+                ["time", "residual"]
+            ].apply(ee.extract_pos_extremes, column="residual")
 
-        # step4: extract negative 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
-        neg_sign = ee.extract_neg_extremes(self.data, column=self.column_name)
+            # extract positive 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
+            pos_sign_events = self.data.groupby(self.independent_dim)[
+                ["time", self.column_name]
+            ].apply(ee.extract_pos_extremes, column=self.column_name)
 
-        # step 5: find the corresponding sign-time for neg_extreme event
-        self.negative_events = ee.find_sign_times(neg_extreme, neg_sign)
+            # find the corresponding sign-time for pos_extreme event
+            events = ee.find_sign_times(pos_extreme_events, pos_sign_events)
+
+        elif extreme_type == "neg":
+            # extreme_strat_time and extreme_end_time are calculated after removing the threshold from original data
+            thr_dayofyear = self.calculate_threshold(extreme_type="neg")
+            data_residual = self.data.groupby(self.independent_dim)[
+                ["time", self.column_name]
+            ].apply(
+                et.subtract_threshold,
+                threshold=thr_dayofyear,
+                column_name=self.column_name,
+            )
+            data_residual = data_residual.droplevel(-1).reset_index()
+
+            # extract negative 'extreme' events based on 'residual' column. see source code for more details
+            neg_extreme_events = data_residual.groupby(self.independent_dim)[
+                ["time", "residual"]
+            ].apply(ee.extract_neg_extremes, column="residual")
+
+            # extract negative 'sign' events based on column_name. This is for find sign_start_time and sign_end_time
+            neg_sign_events = self.data.groupby(self.independent_dim)[
+                ["time", self.column_name]
+            ].apply(ee.extract_neg_extremes, column=self.column_name)
+
+            # find the corresponding sign-time for neg_extreme event
+            events = ee.find_sign_times(neg_extreme_events, neg_sign_events)
+
+        return events
