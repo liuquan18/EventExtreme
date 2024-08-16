@@ -123,7 +123,6 @@ def find_sign_times(extremes, signs, independent_dim=None):
 
             row["sign_start_time"] = sign_i["extreme_start_time"].values[0]
             row["sign_end_time"] = sign_i["extreme_end_time"].values[0]
-            row["sign_duration"] = sign_i["extreme_duration"].values[0]
             new_extremes.append(row)
 
     new_extremes = pd.DataFrame(new_extremes)
@@ -144,16 +143,15 @@ def find_sign_times(extremes, signs, independent_dim=None):
     # group by 'sign_start_time' and 'sign_end_time'
     new_extremes = new_extremes.groupby(["sign_start_time", "sign_end_time"])[
         new_extremes.columns
-    ].agg(
-        {
-            "extreme_start_time": "min",
-            "extreme_end_time": "max",
-            **{
-                col: "first"
-                for col in extremes.columns
-                if col not in ["extreme_start_time", "extreme_end_time"]
-            },
-        }
+    ].apply(
+        lambda x: x.assign(
+            extreme_start_time=x["extreme_start_time"].min(),
+            extreme_end_time=x["extreme_end_time"].max(),
+            extreme_duration=(
+                x["extreme_end_time"].max() - x["extreme_start_time"].min()
+            ).days
+            + 1,
+        )
     )
 
     new_extremes["sign_duration"] = (
