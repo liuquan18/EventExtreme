@@ -108,19 +108,20 @@ class EventExtreme:
 
         logging.info("Negative extreme events are extracted.")
         return self.negative_events
-    
+
     def set_positive_threshold(self, pos_thr_dayofyear):
         """
         Set the positive threshold by user.
         """
         self.pos_thr_dayofyear = pos_thr_dayofyear
+        logging.info("Positive threshold is set by user.")
 
     def set_negative_threshold(self, neg_thr_dayofyear):
         """
         Set the negative threshold by user.
         """
         self.neg_thr_dayofyear = neg_thr_dayofyear
-
+        logging.info("Negative threshold is set by user.")
 
     def examine_independent_dim(self):
         # if there are other dimensions apart from 'time' and 'column_name'
@@ -255,7 +256,6 @@ class EventExtreme:
                 pos_thr_dayofyear = self.calculate_threshold_single(extreme_type="pos")
 
             elif self.pos_thr_dayofyear is not None:
-                logging.info("positive threshold is set by user")
                 pos_thr_dayofyear = self.pos_thr_dayofyear
 
                 # check the threshold data that is set by user
@@ -285,7 +285,6 @@ class EventExtreme:
                 logging.info("negative threshold is calculated for each day-of-year")
                 neg_thr_dayofyear = self.calculate_threshold_single(extreme_type="neg")
             elif self.neg_thr_dayofyear is not None:
-                logging.info("negative threshold is set by user")
                 neg_thr_dayofyear = self.neg_thr_dayofyear
 
                 # check the threshold data is it is set by user
@@ -349,7 +348,11 @@ class EventExtreme:
             pos_sign_events = pos_sign_events.droplevel(-1).reset_index()
 
             # find the corresponding sign-time for pos_extreme event
-            events = ee.find_sign_times(pos_extreme_events, pos_sign_events, independent_dim=self.independent_dim)
+            events = ee.find_sign_times(
+                pos_extreme_events,
+                pos_sign_events,
+                independent_dim=self.independent_dim,
+            )
 
         elif extreme_type == "neg":
             if self.neg_thr_dayofyear is None:
@@ -380,6 +383,10 @@ class EventExtreme:
             neg_sign_events = neg_sign_events.droplevel(-1).reset_index()
 
             # find the corresponding sign-time for neg_extreme event
-            events = ee.find_sign_times(neg_extreme_events, neg_sign_events, independent_dim=self.independent_dim)
+            events = ee.find_sign_times(
+                neg_extreme_events,
+                neg_sign_events,
+                independent_dim=self.independent_dim,
+            )
 
         return events
