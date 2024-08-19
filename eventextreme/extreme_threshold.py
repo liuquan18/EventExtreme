@@ -44,6 +44,7 @@ def threshold(
         threshold = 1.5 * G[column_name].std()
     elif extreme_type == "neg":
         threshold = -1.5 * G[column_name].std()
+    threshold = pd.DataFrame(threshold)
     threshold = threshold.reset_index()
     threshold.columns = ["dayofyear", "threshold"]
 
