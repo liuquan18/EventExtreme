@@ -93,13 +93,14 @@ def extract_neg_extremes(df, column="residual"):
 
 
 # %%
-def find_sign_times(extremes, signs, independent_dim=None):
+def find_sign_times(extremes, signs, independent_dim=None, combine=False):
     """
     Find the sign_start_time and sign_end_time for each extreme event.
 
     Parameters:
     extremes (pd.DataFrame): The DataFrame containing the extreme events.
     signs (pd.DataFrame): The DataFrame containing the sign events.
+    combine (bool): If True, combine the events with the same sign_start_time and sign_end_time.
 
     Returns:
     pd.DataFrame: The DataFrame containing the extreme events with sign_start_time and sign_end_time.
@@ -137,29 +138,29 @@ def find_sign_times(extremes, signs, independent_dim=None):
     for col in date_time_columns:
         new_extremes[col] = pd.to_datetime(new_extremes[col])
 
-    # find duplicated rows on 'sign_start_time' and 'sign_end_time', delete first one, and replace the 'start_time' with
-    # smallest 'start_time' and 'end_time' with largest 'end_time'
-
-    # group by 'sign_start_time' and 'sign_end_time'
-    new_extremes = new_extremes.groupby(["sign_start_time", "sign_end_time"])[
-        new_extremes.columns
-    ].apply(
-        lambda x: x.assign(
-            extreme_start_time=x["extreme_start_time"].min(),
-            extreme_end_time=x["extreme_end_time"].max(),
-            extreme_duration=(
-                x["extreme_end_time"].max() - x["extreme_start_time"].min()
-            ).days
-            + 1,
+    if combine:
+        # find duplicated rows on 'sign_start_time' and 'sign_end_time', delete first one, and replace the 'start_time' with
+        # smallest 'start_time' and 'end_time' with largest 'end_time'
+        # group by 'sign_start_time' and 'sign_end_time'
+        new_extremes = new_extremes.groupby(["sign_start_time", "sign_end_time"])[
+            new_extremes.columns
+        ].apply(
+            lambda x: x.assign(
+                extreme_start_time=x["extreme_start_time"].min(),
+                extreme_end_time=x["extreme_end_time"].max(),
+                extreme_duration=(
+                    x["extreme_end_time"].max() - x["extreme_start_time"].min()
+                ).days
+                + 1,
+            )
         )
-    )
-    new_extremes = new_extremes.reset_index(drop=True)
-    new_extremes["sign_duration"] = (
-        new_extremes["sign_end_time"] - new_extremes["sign_start_time"]
-    ).dt.days + 1
+        new_extremes = new_extremes.reset_index(drop=True)
+        new_extremes["sign_duration"] = (
+            new_extremes["sign_end_time"] - new_extremes["sign_start_time"]
+        ).dt.days + 1
 
-    new_extremes = new_extremes.drop_duplicates(
-        subset=["sign_start_time", "sign_end_time"], ignore_index=True
-    )
+        new_extremes = new_extremes.drop_duplicates(
+            subset=["sign_start_time", "sign_end_time"], ignore_index=True
+        )
 
     return new_extremes

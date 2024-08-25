@@ -23,7 +23,7 @@ class EventExtreme:
 
     """
 
-    def __init__(self, data, column_name="pc", threshold_std=1.5, independent_dim=None):
+    def __init__(self, data, column_name="pc", threshold_std=1.5, independent_dim=None, combine = False):
         """
         Parameters
         ----------
@@ -40,6 +40,8 @@ class EventExtreme:
             Extremes should be extracted independently for each value of this dimension.
             for example, if the data is 3D with dimensions ['plev','time','pc'], then
             the independent_dim can be 'plev' and the extreme events are extracted independently for each value of 'plev'.
+        combine: bool
+            If True, extreme events are combined for those with same sign_start_time and sign_end_time.
         """
         self.data = data
         self.threshold_std = (
@@ -54,6 +56,7 @@ class EventExtreme:
         self.negative_events = None
 
         self.independent_dim = independent_dim
+        self.combine = combine
 
         # Check if the data is a pandas dataframe with time in one of the columns
         if not isinstance(self.data, pd.DataFrame):
@@ -277,7 +280,7 @@ class EventExtreme:
             )
 
             # find the corresponding sign-time for pos_extreme event
-            events = ee.find_sign_times(pos_extreme_events, pos_sign_events)
+            events = ee.find_sign_times(pos_extreme_events, pos_sign_events,combine=self.combine)
 
         elif extreme_type == "neg":
 
@@ -306,7 +309,7 @@ class EventExtreme:
             )
 
             # find the corresponding sign-time for neg_extreme event
-            events = ee.find_sign_times(neg_extreme_events, neg_sign_events)
+            events = ee.find_sign_times(neg_extreme_events, neg_sign_events, combine=self.combine)
 
         return events
 
@@ -352,6 +355,7 @@ class EventExtreme:
                 pos_extreme_events,
                 pos_sign_events,
                 independent_dim=self.independent_dim,
+                combine=self.combine,
             )
 
         elif extreme_type == "neg":
@@ -387,6 +391,7 @@ class EventExtreme:
                 neg_extreme_events,
                 neg_sign_events,
                 independent_dim=self.independent_dim,
+                combine=self.combine,
             )
 
         return events
