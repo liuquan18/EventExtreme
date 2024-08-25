@@ -42,8 +42,12 @@ extremes = evext.EventExtreme(single_data, independent_dim=None)
 extremes.pos_thr_dayofyear = single_pos_threshold[['dayofyear', 'threshold']]
 positive_events = extremes.extract_positive_extremes
 # %%
+# test with pre-defined threshold and combine = True
+extremes = evext.EventExtreme(single_data, independent_dim=None, combine=True)
+extremes.pos_thr_dayofyear = single_pos_threshold[['dayofyear', 'threshold']]
+positive_events = extremes.extract_positive_extremes
 
-
+#%%
 ############# extreme events in multiple time series ##################
 
 extremes = evext.EventExtreme(data, independent_dim='plev')
