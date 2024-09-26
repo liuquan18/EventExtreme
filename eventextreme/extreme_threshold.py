@@ -6,7 +6,7 @@ import pandas as pd
 def threshold(
     df: pd.DataFrame,
     column_name: str = "pc",
-    threshold: int = 1.5,
+    relative_thr: int = 1.5,
     extreme_type: str = "pos",
 ) -> pd.DataFrame:
     """
@@ -41,14 +41,14 @@ def threshold(
 
     if extreme_type == "pos":
         # the standard deviation of the data is calculated from all possible columns
-        threshold = 1.5 * G[column_name].std()
+        abs_thr = relative_thr * G[column_name].std()
     elif extreme_type == "neg":
-        threshold = -1.5 * G[column_name].std()
-    threshold = pd.DataFrame(threshold)
-    threshold = threshold.reset_index()
-    threshold.columns = ["dayofyear", "threshold"]
+        abs_thr = -relative_thr * G[column_name].std()
+    abs_thr = pd.DataFrame(abs_thr)
+    abs_thr = abs_thr.reset_index()
+    abs_thr.columns = ["dayofyear", "threshold"]
 
-    return threshold
+    return abs_thr
 
 
 # %%
