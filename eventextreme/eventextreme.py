@@ -195,12 +195,12 @@ class EventExtreme:
 
         if extreme_type == "pos":
             thr_dayofyear = et.threshold(
-                data_window, column_name=self.column_name, extreme_type="pos"
+                data_window, column_name=self.column_name, extreme_type="pos", relative_thr=self.threshold_std
             )
         elif extreme_type == "neg":
 
             thr_dayofyear = et.threshold(
-                data_window, column_name=self.column_name, extreme_type="neg"
+                data_window, column_name=self.column_name, extreme_type="neg", relative_thr=self.threshold_std
             )
 
         return thr_dayofyear
@@ -219,12 +219,12 @@ class EventExtreme:
         if extreme_type == "pos":
             thr_dayofyear = data_window.groupby(independent_dim)[
                 ["time", self.column_name]
-            ].apply(et.threshold, column_name=self.column_name, extreme_type="pos")
+            ].apply(et.threshold, column_name=self.column_name, extreme_type="pos", relative_thr=self.threshold_std)
 
         elif extreme_type == "neg":
             thr_dayofyear = data_window.groupby(independent_dim)[
                 ["time", self.column_name]
-            ].apply(et.threshold, column_name=self.column_name, extreme_type="neg")
+            ].apply(et.threshold, column_name=self.column_name, extreme_type="neg", relative_thr=self.threshold_std)
 
         thr_dayofyear = thr_dayofyear.droplevel(-1).reset_index()
         return thr_dayofyear
